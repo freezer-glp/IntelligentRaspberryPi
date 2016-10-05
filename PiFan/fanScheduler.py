@@ -3,8 +3,8 @@ import os
 import fanController
 import traceback
 
-StartFanTemp = 40
-StopFanTemp = 35
+StartFanTemp = 45
+StopFanTemp = 34
 
 def getCPUtemperature():
     res = os.popen('vcgencmd measure_temp').readline()
@@ -12,11 +12,14 @@ def getCPUtemperature():
     
 def fanScheduler():
     try:
-        temp = round(getCPUtemperature())
-        if temp > StartFanTemp :
+        temp = int(round(getCPUtemperature()))
+        print "CPU temp:" + str(temp)
+        if temp >= StartFanTemp :
             fanController.startFan()
-        elif temp < stopFanTemp :
+            print "Start fan."
+        elif temp <= StopFanTemp :
             fanController.stopFan()
+            print "Stop fan."
     except:
         traceback.print_exc()
         

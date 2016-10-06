@@ -1,0 +1,3 @@
+Permanently (Debian and derivatives such as Ubuntu, with or without Network Manager): Create a script called /etc/network/if-pre-up.d/mtu with the following contents and make it world-executable (chmod a+rx):
+#!/bin/sh
+ifconfig $IFACE mtu 1454

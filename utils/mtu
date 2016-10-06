@@ -1,0 +1,2 @@
+#!/bin/sh
+ifconfig $IFACE mtu 1454

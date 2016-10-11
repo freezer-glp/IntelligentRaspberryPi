@@ -1,64 +1,83 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import RPi.GPIO as GPIO
 import time
-import sys
 import Font
-#from grafix import *
 
-#gpio's :
+# gpio's :
 SCLK = 32
 DIN = 22
 DC = 18
 RST = 16
 CE = 7
 
-SPACEWIDTH = 3
+SPACE_WIDTH = 3
+WRITE_DATA = True
+WRITE_CMD = False
+
 
 def main():
-    begin(0xbc) # contrast - may need tweaking for each display
-    gotoxy(0, 0)
-    #text(sys.argv[1])
-    text("I Love U")
-#    for i in xrange(85):
-#        lcd_data(0xff)
-    #lcd_data(0xff)
-    #lcd_data(0xff)
-#    text("HELLO")
-#    gotoxy(8,2)
-#    text("RASPBERRY PI")
-#    gotoxy(6,4)
-#    text("FORUM MEMBERS")
+    initLCD()
+    # text(sys.argv[1])
+    displayText("I Love U", 28, 0)
 
-def gotoxy(x,y):
-    lcd_cmd(x+128)
-    lcd_cmd(y+64)
 
-def text(words):
+def gotoxy(x, y):
+    """
+    Set the cursor to (x,y)
+    :param x: 0 <= x <= 83
+    :param y: 0 <= y <= 5
+    :return:
+    """
+    if 0 <= x <= 83 and 0 <= y <= 5:
+        writeByte(x + 128, WRITE_CMD)
+        writeByte(y + 64, WRITE_CMD)
+    else:
+        print "Error (x,y):" + str(x) + str(y)
+
+
+def displayText(words, x=-1, y=-1):
+    """
+    Display words(string) on LCD5110 [start at (x, y) ]
+    :param words: the words noly contain ASCII chars
+    :return: None
+    """
+    logMsg = "Display: " + words
+    if x != -1 and y != -1:
+        gotoxy(x, y)
+        logMsg += " at (" + str(x) + "," + str(y) + ")"
+    #print logMsg
     for i in range(len(words)):
-        print "words["+str(i) + "]:"+ words[i]
-        display_char(words[i])
+        #print "words[" + str(i) + "]:" + words[i]
+        displayChar(words[i])
 
-def display_char(char):
-    index=(ord(char)-32)*6
+
+def displayChar(char):
+    """
+    Display a char on LCD5110
+    :param char:
+    :return: None
+    """
+    index = (ord(char) - 32) * 6
     if ord(char) > 32 and ord(char) <= 122:
         for i in range(6):
-            #print (index+i)
-            lcd_data(Font.font[index+i])
-        #lcd_data(0xff) # space inbetween characters
+            writeByte(Font.font[index + i], WRITE_DATA)
     elif ord(char) == 32:
-        for i in xrange(SPACEWIDTH):
-            lcd_data(0x00)
+        for i in xrange(SPACE_WIDTH):
+            writeByte(0x00, WRITE_DATA)
 
-def cls():
-    gotoxy(0,0)
+
+def clearScreen():
+    gotoxy(0, 0)
     for i in range(84):
         for j in range(6):
-            lcd_data(0)
+            writeByte(0x00, WRITE_DATA)
+
 
 def setup():
-# set pin directions
+    """
+    Set GPIO mode and pin direct
+    :return:
+    """
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BOARD)
     GPIO.setup(DIN, GPIO.OUT)
@@ -67,7 +86,13 @@ def setup():
     GPIO.setup(RST, GPIO.OUT)
     GPIO.setup(CE, GPIO.OUT)
 
-def begin(contrast):
+
+def initLCD():
+    """
+    Initialize the LCD5110
+    :return:
+    """
+
     setup()
 
     # toggle RST low to reset
@@ -76,42 +101,40 @@ def begin(contrast):
     GPIO.output(RST, True)
     time.sleep(0.5)
 
-    #GPIO.output(CE, True)
-    #time.sleep(0.5)
-    #GPIO.output(CE, False)
-    #time.sleep(0.5)
+    writeByte(0x21, WRITE_CMD)  # extend mode
+    writeByte(0x13, WRITE_CMD)  # bias 1:65
+    writeByte(0xc4, WRITE_CMD)  # vop
 
-    lcd_cmd(0x21) # extend mode
-    lcd_cmd(0x13) # bias 1:65
-    lcd_cmd(0xc4) # vop
+    writeByte(0x20, WRITE_CMD)  # basic mode
+    writeByte(0x0c, WRITE_CMD)  # nomal mode display D = 1, E = 0
 
-    lcd_cmd(0x20) # basic mode
-    lcd_cmd(0x0c) # nomal mode display D = 1, E = 0
-    
-    cls()
+    clearScreen()
 
 
 def SPI(c):
-    # data = DIN
-    # clock = SCLK
-    # MSB first
-    # value = c
+    """
+    Write byte to LCD and each clock a bit
+    :param c: the byte
+    :return: None
+    """
     GPIO.output(CE, False)
     for i in xrange(8):
-        GPIO.output(DIN, (c & (1 << (7-i))) > 0)
+        GPIO.output(DIN, (c & (1 << (7 - i))) > 0)
         GPIO.output(SCLK, False)
         GPIO.output(SCLK, True)
-    GPIO.output(CE, True) 
+    GPIO.output(CE, True)
 
-def lcd_cmd(c):
-    print "lcd_cmd sent :"+hex(c)
-    GPIO.output(DC, False)
+
+def writeByte(c, type):
+    """
+    Write a Byte to LCD5110
+    :param c: the byte
+    :param type: an int value and 1 means data output while 0 means command output
+    :return: None
+    """
+    GPIO.output(DC, type)
     SPI(c)
 
-def lcd_data(c):
-    print "data sent :"+hex(c)
-    GPIO.output(DC, True)
-    SPI(c)
 
 if __name__ == "__main__":
     main()

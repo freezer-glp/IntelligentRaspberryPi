@@ -1,1 +1,1 @@
-##Raspberry pi Fan controller
+##Raspberry pi fan controller
